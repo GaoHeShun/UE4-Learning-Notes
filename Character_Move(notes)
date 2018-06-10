@@ -1,0 +1,27 @@
+void AMLCharacter::MoveForward(float Val)
+{
+       if (Val !=0.f)
+       {
+              //找出前进的方向
+              const FRotator Rotation = GetControlRotation();
+              FRotator YawRotation(0, Rotation.Yaw, 0);
+              //转成向前的向量
+              const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+              //添加移动向量
+              AddMovementInput(Direction, Val);
+       }
+}
+void AMLCharacter::MoveRight(float Val)
+{
+       if (Val != 0.f)
+       {
+              //找出前进的方向
+              const FRotator Rotation = GetControlRotation();
+              FRotator YawRotation(0, Rotation.Yaw, 0);
+              //转成向前的向量
+              const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+              //添加移动向量
+              AddMovementInput(Direction, Val);
+       }
+}
+
