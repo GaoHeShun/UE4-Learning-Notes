@@ -1,0 +1,42 @@
+/*SlAiMenuHUD.cpp*/
+/*
+*/
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/HUD.h"
+#include "SlAiMenuHUD.generated.h"
+
+UCLASS()
+class MYLEARNINGS_01_API ASlAiMenuHUD : public AHUD
+{
+	GENERATED_BODY()
+	
+	
+public:
+	ASlAiMenuHUD();
+	
+	TSharedPtr<class SSiAiMenuHUDWidget> MenuHUDWidget;
+};
+
+
+/*SlAiMenuHUD.cpp*/
+/*
+*/
+#include "SlAiMenuHUD.h"
+#include "SSiAiMenuHUDWidget.h"
+#include "SlateBasics.h"
+#include "Engine.h"
+
+ASlAiMenuHUD::ASlAiMenuHUD() 
+{
+	if (GEngine && GEngine->GameViewport)
+	{
+		SAssignNew(MenuHUDWidget, SSiAiMenuHUDWidget);  //将后面的值分配给前面的值
+		GEngine->GameViewport->AddViewportWidgetContent(SNew(SWeakWidget).PossiblyNullContent(MenuHUDWidget.ToSharedRef()));
+    //“ SWeakWidget ”在这我理解成起到占位作用，后面是判断 MenuHUDWidget可能为空。
+		
+	}
+}
+
+官方API：http://api.unrealengine.com/CHN/Programming/Slate/InGameUI/index.html
