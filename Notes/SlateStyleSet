@@ -1,0 +1,209 @@
+Style实例化管理器
+
+/*  SlAiStyle.h  */
+
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "SlateBasics.h"
+/**
+ * 
+ */
+class SLAICOURSE_API SlAiStyle
+{
+public:
+	static void Initialze();
+
+	static FName GetStyleSetName();
+
+	static void ShutDown();
+
+	static const ISlateStyle& Get();
+
+
+private:
+/*返回一个引用*/
+	static TSharedRef<class FSlateStyleSet> Create();
+
+	static TSharedPtr<FSlateStyleSet> SlAiStyleInstance;
+};
+
+/*  SlAiStyle.cpp  */
+
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#include "SlAiStyle.h"
+#include "SlateGameResources.h"
+
+TSharedPtr<FSlateStyleSet> SlAiStyle::SlAiStyleInstance = NULL;
+/***************************************************************************
+//需要在项目脚本里调用，不然不会执行到
+*****SlAiCourse.h****
+#pragma once
+#include "CoreMinimal.h"
+class FSlAiCourceModule : public FDefaultGameModuleImpl
+{
+public:
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
+};
+*****SlAiCourse.cpp****
+#include "SlAiCourse.h"
+#include "Modules/ModuleManager.h"
+#include "SlAiStyle.h"
+void FSlAiCourceModule::StartupModule()
+{
+	//初始化样式
+	FSlateStyleRegistry::UnRegisterSlateStyle(SlAiStyle::GetStyleSetName());
+	SlAiStyle::Initialze();
+}
+void FSlAiCourceModule::ShutdownModule()
+{
+	SlAiStyle::ShutDown();
+}
+IMPLEMENT_PRIMARY_GAME_MODULE(FSlAiCourceModule, SlAiCourse, "SlAiCourse");
+****************************************************************************/
+void SlAiStyle::Initialze()   
+{
+	if (!SlAiStyleInstance.IsValid()) {
+		SlAiStyleInstance = Create();
+		FSlateStyleRegistry::RegisterSlateStyle(*SlAiStyleInstance);
+	}
+}
+
+FName SlAiStyle::GetStyleSetName()
+{
+	static FName StyleSetName(TEXT("SlAiStyle"));
+	return StyleSetName;
+
+}
+
+void SlAiStyle::ShutDown()
+{
+	FSlateStyleRegistry::UnRegisterSlateStyle(*SlAiStyleInstance);
+	ensure(SlAiStyleInstance.IsUnique());
+	SlAiStyleInstance.Reset();
+}
+
+const ISlateStyle& SlAiStyle::Get()
+{
+	return *SlAiStyleInstance;
+}
+
+TSharedRef<class FSlateStyleSet> SlAiStyle::Create()
+{
+/*查找指定目录下的指定类型的文件*/
+	TSharedRef<FSlateStyleSet> StyleRef = FSlateGameResources::New(SlAiStyle::GetStyleSetName(), "/Game/UI/Style", 
+		"/Game/UI/Style");
+	return StyleRef;
+}
+
+使用案例：
+定义一个自定义WidgetStyle。/*SlAIMenuWidgetStyle.h*/
+=======================================================================================================
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Styling/SlateWidgetStyle.h"
+#include "SlateWidgetStyleContainerBase.h"
+#include "SlateBrush.h"   //笔刷需要包含的。h文件
+
+
+#include "SlAIMenuWidgetStyle.generated.h"
+
+/**
+ * 
+ */
+USTRUCT()
+struct SLAICOURSE_API FSlAIMenuStyle : public FSlateWidgetStyle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FSlAIMenuStyle();
+	virtual ~FSlAIMenuStyle();
+
+	// FSlateWidgetStyle
+	virtual void GetResources(TArray<const FSlateBrush*>& OutBrushes) const override;
+	static const FName TypeName;
+	virtual const FName GetTypeName() const override { return TypeName; };
+	static const FSlAIMenuStyle& GetDefault();
+//定义一个笔刷
+	UPROPERTY(EditAnywhere, Category = MenuHUD)
+		FSlateBrush MenuHUDBackgroundBrush;
+
+};
+
+/**
+ */
+UCLASS(hidecategories=Object, MinimalAPI)
+class USlAIMenuWidgetStyle : public USlateWidgetStyleContainerBase
+{
+	GENERATED_BODY()
+
+public:
+	/** The actual data describing the widget appearance. */
+	UPROPERTY(Category=Appearance, EditAnywhere, meta=(ShowOnlyInnerProperties))
+	FSlAIMenuStyle WidgetStyle;
+
+	virtual const struct FSlateWidgetStyle* const GetStyle() const override
+	{
+		return static_cast< const struct FSlateWidgetStyle* >( &WidgetStyle );
+	}
+};
+============================================================================================================
+在一个widget里面定义一个该类型的Style，用于获取
+/*SSlAiMenuHUDWidget.h*/
+===============================================================================================================
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/SCompoundWidget.h"
+
+/**
+ * 
+ */
+class SLAICOURSE_API SSlAiMenuHUDWidget : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SSlAiMenuHUDWidget)
+	{}
+	SLATE_END_ARGS()
+
+	/** Constructs this widget with InArgs */
+	void Construct(const FArguments& InArgs);
+
+private:
+
+	//获取Menu样式
+	const struct FSlAIMenuStyle *MenuStyle;
+};
+==============================================================
+/*SSlAiMenuHUDWidget.Cpp*/
+====================================================================
+#include "SSlAiMenuHUDWidget.h"
+#include "SlateOptMacros.h"
+#include "SButton.h"
+#include "SImage.h"
+#include "SlAiStyle.h"
+#include "SlAiMenuWidgetStyle.h"
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+void SSlAiMenuHUDWidget::Construct(const FArguments& InArgs)
+{
+	//获取编辑器的MenuStyle
+	MenuStyle = &SlAiStyle::Get().GetWidgetStyle<FSlAIMenuStyle>("BPSlAiMenuStyle");
+
+	ChildSlot
+	[
+		SNew(SImage)
+		.Image(&MenuStyle->MenuHUDBackgroundBrush)  //此时该Image就具有了FSlAIMenuStyle类型的属性
+	];
+	
+}
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+================================================================================
+然后将该Widget添加得到HUD上就可以显示了。
